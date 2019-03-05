@@ -1,4 +1,4 @@
-## structwalk
+## structwalk [![Go Report Card](https://goreportcard.com/badge/github.com/xlab/structwalk)](https://goreportcard.com/report/github.com/xlab/structwalk) [![GoDoc](https://godoc.org/github.com/xlab/structwalk?status.svg)](https://godoc.org/github.com/xlab/structwalk)
 
 Battle-tested Go struct and map traversal utilities.
 
