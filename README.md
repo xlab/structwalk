@@ -1,6 +1,6 @@
 ## structwalk [![Go Report Card](https://goreportcard.com/badge/github.com/xlab/structwalk)](https://goreportcard.com/report/github.com/xlab/structwalk) [![GoDoc](https://godoc.org/github.com/xlab/structwalk?status.svg)](https://godoc.org/github.com/xlab/structwalk)
 
-Battle-tested Go struct and map traversal utilities.
+Battle-tested Go struct and map traversal utilities. Has been around since 2016.
 
 ### FieldValue
 
@@ -66,18 +66,43 @@ object.Foo.Bar.Baz = map[string]int{
 
 list := structwalk.FieldList(object)
 // [
-//  Foo.Bar.Baz.Kek
-//  Foo.Bar.Baz.Lol
-//  Foo.Bar.Baz2
+//  "Foo.Bar.Baz.Kek",
+//  "Foo.Bar.Baz.Lol",
+//  "Foo.Bar.Baz2"
 // ]
 ```
 
 ### GetterList
 
-See `GetterValue`, also `FieldList`.
+Returns list of getter methods that accept no arguments (except the implicit pointer to the struct) and return one value. Can be used in templates to get a value that is not accessible by a method.
 
 ```go
 structwalk.GetterList(in interface{}) []string
+```
+
+Example:
+
+```go
+type SomeDecorated struct{}
+
+func (s SomeDecorated) Foo() string {
+    return "foo"
+}
+
+func (s SomeDecorated) FooBytes() []byte {
+    return []byte("foo")
+}
+
+func (s SomeDecorated) Bar() SomeStruct {
+    return SomeStruct{}
+}
+
+list := structwalk.FieldList(SomeDecorated{})
+// [
+//   "Bar.Baz",
+//   "Foo",
+//   "FooBytes"
+// ]
 ```
 
 ### License

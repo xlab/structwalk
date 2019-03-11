@@ -204,7 +204,10 @@ func traverseMap(prefix string, flatList []string, t reflect.Type, v reflect.Val
 	return flatList
 }
 
-// GetterList is the same as FieldList, but for reasons stated in GetterValue.
+// GetterList returns list of getter methods that accept
+// no arguments (except the implicit pointer to the struct) and return one value.
+//
+// Example: (f *foo) Bar() string
 func GetterList(in interface{}) []string {
 	defer func() {
 		if x := recover(); x != nil {
