@@ -178,13 +178,16 @@ func traverseMap(prefix string, flatList []string, t reflect.Type, v reflect.Val
 			field = v.MapIndex(key)
 		}
 		fieldType := field.Type()
-		for {
-			if fieldType.Kind() == reflect.Ptr || fieldType.Kind() == reflect.Interface {
-				field = field.Elem()
-				fieldType = field.Type()
-				continue
+		if (fieldType.Kind() == reflect.Ptr ||
+			fieldType.Kind() == reflect.Interface) && !field.IsNil() {
+			for {
+				if fieldType.Kind() == reflect.Ptr || fieldType.Kind() == reflect.Interface {
+					field = field.Elem()
+					fieldType = field.Type()
+					continue
+				}
+				break
 			}
-			break
 		}
 		fieldPrefix := key.String()
 		if len(prefix) > 0 {

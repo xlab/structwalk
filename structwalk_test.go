@@ -114,17 +114,29 @@ func TestFieldList(t *testing.T) {
 
 func TestMapFieldList(t *testing.T) {
 	assert := assert.New(t)
+
 	foo := map[string]interface{}{
-		"Foo": 1,
+		"Foo":  1,
+		"Null": nil,
 		"Bar": map[string]interface{}{
 			"Baz": 5,
 		},
 	}
-	list := FieldList(foo)
 	assert.Equal([]string{
 		"Bar.Baz",
 		"Foo",
-	}, list)
+		"Null",
+	}, FieldList(foo))
+
+	var str = "aaa"
+	bar := map[string]*string{
+		"Kek": nil,
+		"Lol": &str,
+	}
+	assert.Equal([]string{
+		"Kek",
+		"Lol",
+	}, FieldList(bar))
 }
 
 func TestGetterList(t *testing.T) {
