@@ -9,6 +9,31 @@ import (
 
 // FieldValue returns a value of a field at path in deeply nested structs, will traverse both maps and structs.
 func FieldValue(path string, in interface{}) (v interface{}, found bool) {
+	var cur reflect.Value
+
+	cur, found = findValue(path, in)
+	if !found {
+		return
+	}
+
+	v, found = cur.Interface(), true
+
+	return
+}
+
+// SetFieldValue sets a value of a field at path in deeply nested structs, will traverse both maps and structs.
+func SetFieldValue(path string, v interface{}, in interface{}) {
+	var cur reflect.Value
+
+	cur, found := findValue(path, in)
+	if !found {
+		return
+	}
+
+	cur.Set(reflect.ValueOf(v))
+}
+
+func findValue(path string, in interface{}) (v reflect.Value, found bool) {
 	defer func() {
 		if x := recover(); x != nil {
 			return
@@ -17,11 +42,13 @@ func FieldValue(path string, in interface{}) (v interface{}, found bool) {
 
 	parts := strings.Split(path, ".")
 	if len(parts) == 0 {
-		return nil, false
+		return reflect.Value{}, false
 	}
+
 	cur := reflect.ValueOf(in)
 	for i, part := range parts {
 		part := strings.ToLower(part)
+
 		for {
 			if cur.Kind() == reflect.Ptr || cur.Kind() == reflect.Interface {
 				cur = cur.Elem()
@@ -29,6 +56,7 @@ func FieldValue(path string, in interface{}) (v interface{}, found bool) {
 			}
 			break
 		}
+
 		if cur.Kind() == reflect.Struct {
 			cur = cur.FieldByNameFunc(func(name string) bool {
 				return strings.ToLower(name) == part
@@ -44,16 +72,15 @@ func FieldValue(path string, in interface{}) (v interface{}, found bool) {
 				}
 			}
 			if !keyFound {
-				return nil, false
+				return reflect.Value{}, false
 			}
 		} else if i != len(parts)-1 {
 			// not last, but already has no deep
-			return nil, false
+			return reflect.Value{}, false
 		}
 	}
-	v = cur.Interface()
-	found = true
-	return
+
+	return cur, true
 }
 
 // GetterValue is a special case of FieldValue, that checks if for a field named Foo,
@@ -70,12 +97,17 @@ func GetterValue(path string, in interface{}) (v interface{}, found bool) {
 	if len(parts) == 0 {
 		return nil, false
 	}
-	var parent reflect.Value
-	var lastPart string
+
+	var (
+		parent   reflect.Value
+		lastPart string
+	)
+
 	cur := reflect.ValueOf(in)
 	for i, part := range parts {
 		m := cur.MethodByName(part)
 		typ := m.Type()
+
 		if typ.NumIn() != 0 || typ.NumOut() != 1 {
 			continue
 		}
@@ -83,12 +115,15 @@ func GetterValue(path string, in interface{}) (v interface{}, found bool) {
 		out := m.Call(nil)
 		parent = cur
 		cur = out[0]
+
 		if cur.NumMethod() == 0 && i != len(parts)-1 {
 			// not last, but already has no deep
 			return nil, false
 		}
+
 		lastPart = part
 	}
+
 	if cur.Kind() == reflect.String {
 		m := parent.MethodByName(lastPart + "Bytes")
 		if m.IsValid() {
@@ -96,12 +131,14 @@ func GetterValue(path string, in interface{}) (v interface{}, found bool) {
 			if vv := out[0]; vv.CanInterface() {
 				v = vv.Interface()
 				found = true
+
 				return
 			}
 		}
 	}
 	v = cur.Interface()
 	found = true
+
 	return
 }
 
@@ -115,16 +152,21 @@ func FieldList(in interface{}) []string {
 
 	t := reflect.TypeOf(in)
 	v := reflect.ValueOf(in)
+	
 	for {
 		if t.Kind() == reflect.Ptr ||
 			t.Kind() == reflect.Interface {
 			t = t.Elem()
 			v = v.Elem()
+
 			continue
 		}
+
 		break
 	}
+
 	var flatList []string
+
 	if t.Kind() == reflect.Struct {
 		flatList = make([]string, 0, t.NumField())
 		flatList = traverseFields("", flatList, t, v)
@@ -132,7 +174,9 @@ func FieldList(in interface{}) []string {
 		flatList = make([]string, 0, len(v.MapKeys()))
 		flatList = traverseMap("", flatList, t, v)
 	}
+
 	sort.Strings(flatList)
+
 	return flatList
 }
 
@@ -143,10 +187,13 @@ func traverseFields(prefix string, flatList []string, t reflect.Type, v reflect.
 		if v.IsValid() {
 			field = v.Field(i)
 		}
+
 		fieldType := t.Field(i).Type
+
 		for {
 			if fieldType.Kind() == reflect.Ptr || fieldType.Kind() == reflect.Interface {
 				fieldType = fieldType.Elem()
+
 				if field.IsValid() {
 					field = field.Elem()
 				}
@@ -154,7 +201,9 @@ func traverseFields(prefix string, flatList []string, t reflect.Type, v reflect.
 			}
 			break
 		}
+
 		fieldPrefix := t.Field(i).Name
+
 		if len(prefix) > 0 {
 			fieldPrefix = fmt.Sprintf("%s.%s", prefix, fieldPrefix)
 		}
@@ -166,6 +215,7 @@ func traverseFields(prefix string, flatList []string, t reflect.Type, v reflect.
 			flatList = traverseMap(fieldPrefix, flatList, fieldType, field)
 			continue
 		}
+
 		flatList = append(flatList, fieldPrefix)
 	}
 	return flatList
@@ -178,6 +228,7 @@ func traverseMap(prefix string, flatList []string, t reflect.Type, v reflect.Val
 			field = v.MapIndex(key)
 		}
 		fieldType := field.Type()
+		
 		if (fieldType.Kind() == reflect.Ptr ||
 			fieldType.Kind() == reflect.Interface) && !field.IsNil() {
 			for {
@@ -193,6 +244,7 @@ func traverseMap(prefix string, flatList []string, t reflect.Type, v reflect.Val
 		if len(prefix) > 0 {
 			fieldPrefix = fmt.Sprintf("%s.%s", prefix, key.String())
 		}
+		
 		if fieldType.Kind() == reflect.Struct {
 			flatList = traverseFields(fieldPrefix, flatList, fieldType, field)
 			continue
@@ -200,6 +252,7 @@ func traverseMap(prefix string, flatList []string, t reflect.Type, v reflect.Val
 			flatList = traverseMap(fieldPrefix, flatList, fieldType, field)
 			continue
 		}
+
 		flatList = append(flatList, fieldPrefix)
 	}
 	return flatList
@@ -241,6 +294,7 @@ func traverseGetters(prefix string, flatList []string,
 			flatList = traverseGetters(mPrefix, flatList, out[0].Type(), out[0])
 			continue
 		}
+
 		flatList = append(flatList, mPrefix)
 	}
 	return flatList

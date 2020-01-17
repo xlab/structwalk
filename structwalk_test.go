@@ -33,6 +33,51 @@ func TestFieldValue(t *testing.T) {
 	}
 }
 
+func TestSetFieldValue(t *testing.T) {
+	assert := assert.New(t)
+
+	v := &SomeStruct{
+		Foo: "foo",
+		Bar: &struct {
+			Baz int
+		}{
+			Baz: 5,
+		},
+	}
+
+	{
+		vv, ok := FieldValue("Foo", v)
+		assert.True(ok)
+		if assert.NotNil(vv) {
+			assert.Equal("foo", vv.(string))
+		}
+
+		SetFieldValue("Foo", "bar", v)
+
+		vv, ok = FieldValue("Foo", v)
+		assert.True(ok)
+		if assert.NotNil(vv) {
+			assert.Equal("bar", vv.(string))
+		}
+	}
+
+	{
+		vv, ok := FieldValue("Bar.Baz", v)
+		assert.True(ok)
+		if assert.NotNil(vv) {
+			assert.Equal(5, vv.(int))
+		}
+
+		SetFieldValue("Bar.Baz", 10, v)
+
+		vv, ok = FieldValue("Bar.Baz", v)
+		assert.True(ok)
+		if assert.NotNil(vv) {
+			assert.Equal(10, vv.(int))
+		}
+	}
+}
+
 func TestFieldValueMap(t *testing.T) {
 	assert := assert.New(t)
 	v := map[string]interface{}{
