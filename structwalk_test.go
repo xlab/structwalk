@@ -11,7 +11,8 @@ func TestFieldValue(t *testing.T) {
 	v := &SomeStruct{
 		Foo: "foo",
 		Bar: &struct {
-			Baz int
+			Baz   int
+			Array []int
 		}{
 			Baz: 5,
 		},
@@ -39,22 +40,18 @@ func TestSetFieldValue(t *testing.T) {
 	v := &SomeStruct{
 		Foo: "foo",
 		Bar: &struct {
-			Baz int
+			Baz   int
+			Array []int
 		}{
-			Baz: 5,
+			Baz:   5,
+			Array: []int{1, 2},
 		},
 	}
 
 	{
-		vv, ok := FieldValue("Foo", v)
-		assert.True(ok)
-		if assert.NotNil(vv) {
-			assert.Equal("foo", vv.(string))
-		}
-
 		SetFieldValue("Foo", "bar", v)
 
-		vv, ok = FieldValue("Foo", v)
+		vv, ok := FieldValue("Foo", v)
 		assert.True(ok)
 		if assert.NotNil(vv) {
 			assert.Equal("bar", vv.(string))
@@ -62,18 +59,22 @@ func TestSetFieldValue(t *testing.T) {
 	}
 
 	{
+		SetFieldValue("Bar.Baz", 10, v)
+
 		vv, ok := FieldValue("Bar.Baz", v)
 		assert.True(ok)
 		if assert.NotNil(vv) {
-			assert.Equal(5, vv.(int))
+			assert.Equal(10, vv.(int))
 		}
+	}
 
-		SetFieldValue("Bar.Baz", 10, v)
+	{
+		SetFieldValue("Bar.Array", []int{3, 4}, v)
 
-		vv, ok = FieldValue("Bar.Baz", v)
+		vv, ok := FieldValue("Bar.Array", v)
 		assert.True(ok)
 		if assert.NotNil(vv) {
-			assert.Equal(10, vv.(int))
+			assert.EqualValues([]int{3, 4}, vv.([]int))
 		}
 	}
 }
@@ -84,7 +85,8 @@ func TestFieldValueMap(t *testing.T) {
 		"First": &SomeStruct{
 			Foo: "foo",
 			Bar: &struct {
-				Baz int
+				Baz   int
+				Array []int
 			}{
 				Baz: 5,
 			},
@@ -152,6 +154,7 @@ func TestFieldList(t *testing.T) {
 	foo := &SomeStruct{}
 	list := FieldList(foo)
 	assert.Equal([]string{
+		"Bar.Array",
 		"Bar.Baz",
 		"Foo",
 	}, list)
@@ -212,7 +215,8 @@ func (s SomeDecorated) Bar() SomeStruct {
 type SomeStruct struct {
 	Foo string
 	Bar *struct {
-		Baz int
+		Baz   int
+		Array []int
 	}
 }
 
