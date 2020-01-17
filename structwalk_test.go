@@ -160,6 +160,17 @@ func TestFieldList(t *testing.T) {
 	}, list)
 }
 
+func TestFieldListNoSort(t *testing.T) {
+	assert := assert.New(t)
+	foo := &SomeStruct{}
+	list := FieldListNoSort(foo)
+	assert.Equal([]string{
+		"Foo",
+		"Bar.Baz",
+		"Bar.Array",
+	}, list)
+}
+
 func TestMapFieldList(t *testing.T) {
 	assert := assert.New(t)
 

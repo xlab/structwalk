@@ -104,6 +104,7 @@ func GetterValue(path string, in interface{}) (v interface{}, found bool) {
 	)
 
 	cur := reflect.ValueOf(in)
+
 	for i, part := range parts {
 		m := cur.MethodByName(part)
 		typ := m.Type()
@@ -142,8 +143,8 @@ func GetterValue(path string, in interface{}) (v interface{}, found bool) {
 	return
 }
 
-// FieldList simply prints the list of fields of a struct, recursively.
-func FieldList(in interface{}) []string {
+// FieldListNoSort return the list of fields of a struct, recursively without sorting.
+func FieldListNoSort(in interface{}) []string {
 	defer func() {
 		if x := recover(); x != nil {
 			return
@@ -152,7 +153,7 @@ func FieldList(in interface{}) []string {
 
 	t := reflect.TypeOf(in)
 	v := reflect.ValueOf(in)
-	
+
 	for {
 		if t.Kind() == reflect.Ptr ||
 			t.Kind() == reflect.Interface {
@@ -174,6 +175,13 @@ func FieldList(in interface{}) []string {
 		flatList = make([]string, 0, len(v.MapKeys()))
 		flatList = traverseMap("", flatList, t, v)
 	}
+
+	return flatList
+}
+
+// FieldList returns the list of fields of a struct, sorted.
+func FieldList(in interface{}) []string {
+	flatList := FieldListNoSort(in)
 
 	sort.Strings(flatList)
 
@@ -228,7 +236,7 @@ func traverseMap(prefix string, flatList []string, t reflect.Type, v reflect.Val
 			field = v.MapIndex(key)
 		}
 		fieldType := field.Type()
-		
+
 		if (fieldType.Kind() == reflect.Ptr ||
 			fieldType.Kind() == reflect.Interface) && !field.IsNil() {
 			for {
@@ -244,7 +252,7 @@ func traverseMap(prefix string, flatList []string, t reflect.Type, v reflect.Val
 		if len(prefix) > 0 {
 			fieldPrefix = fmt.Sprintf("%s.%s", prefix, key.String())
 		}
-		
+
 		if fieldType.Kind() == reflect.Struct {
 			flatList = traverseFields(fieldPrefix, flatList, fieldType, field)
 			continue
